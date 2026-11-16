@@ -3,7 +3,14 @@ import './index.css';
 import React, { StrictMode, useState, useEffect, useRef, useCallback } from 'react';
 import { createRoot } from 'react-dom/client';
 import type { DailyShift, ShiftResult, DecisionRecord, Verdict, InitResponse } from '../shared/types';
-import { getDailyShiftForDate, getTodayUtcDate, calculateModRank, generateShareMarkdown } from '../shared/dailyData';
+import {
+  getDailyShiftForDate,
+  getTodayUtcDate,
+  calculateModRank,
+  generateShareMarkdown,
+  getRandomPracticeShift,
+  shuffleShiftCards,
+} from '../shared/dailyData';
 import { HeaderBar } from './components/HeaderBar';
 import { RulesDrawer } from './components/RulesDrawer';
 import { PostCardView } from './components/PostCardView';
@@ -235,8 +242,29 @@ export const GameApp: React.FC = () => {
     }
   };
 
+  const handleShuffleQueue = () => {
+    soundManager.playTick();
+    setShift((prev) => shuffleShiftCards(prev));
+  };
+
+  const handlePracticeAnotherShift = () => {
+    soundManager.playApprove();
+    const nextShift = getRandomPracticeShift();
+    setShift(nextShift);
+    setCurrentIndex(0);
+    setTimeLeft(60);
+    setCombo(0);
+    setMaxCombo(0);
+    setStrikes(0);
+    setDecisions([]);
+    setFinalResult(null);
+    setGameState('briefing');
+  };
+
   const startPlaying = () => {
     soundManager.playApprove();
+    // Re-shuffle cards to guarantee fresh dynamic randomization
+    setShift((prev) => shuffleShiftCards(prev));
     startTimeRef.current = Date.now();
     cardStartTimeRef.current = Date.now();
     setCurrentIndex(0);
@@ -255,64 +283,129 @@ export const GameApp: React.FC = () => {
     <div
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
-      className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col justify-between items-center p-3 select-none"
+      className="min-h-[100dvh] w-full bg-zinc-950 text-zinc-100 flex flex-col justify-between items-center p-3 select-none overflow-x-hidden relative"
+      style={{ backgroundColor: '#09090b' }}
     >
+      {/* Ambient Top Glow */}
+      <div className="fixed inset-0 pointer-events-none bg-[radial-gradient(ellipse_80%_60%_at_50%_-10%,rgba(234,88,12,0.18),rgba(9,9,11,0))] -z-10" />
+
       {/* 1. BRIEFING STATE */}
       {gameState === 'briefing' && (
-        <div className="w-full max-w-md mx-auto my-auto bg-zinc-900 border border-zinc-700/80 rounded-3xl p-6 shadow-2xl text-center animate-in zoom-in-95 duration-200">
-          <div className="w-16 h-16 rounded-2xl bg-orange-600/20 border border-orange-500/40 flex items-center justify-center text-3xl mx-auto mb-4">
+        <div className="w-full max-w-md mx-auto my-auto bg-zinc-900/90 border border-zinc-700/80 rounded-3xl p-6 shadow-2xl text-center animate-in zoom-in-95 duration-200 backdrop-blur-md">
+          {/* Glowing Mascot Pod */}
+          <div className="relative mx-auto mb-4 w-20 h-20 rounded-3xl bg-gradient-to-b from-orange-500/25 via-zinc-900 to-zinc-950 border-2 border-orange-500/40 shadow-[0_0_35px_rgba(249,115,22,0.25)] flex items-center justify-center text-4xl">
             {shift.mascot}
+            <span className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-emerald-500 border-2 border-zinc-950 flex items-center justify-center text-[10px] text-white">
+              ●
+            </span>
           </div>
 
-          <span className="text-[11px] font-bold tracking-widest text-orange-400 uppercase bg-orange-950/60 px-2.5 py-1 rounded-full border border-orange-500/30">
-            Today&apos;s Mod Assignment
-          </span>
+          {/* Daily Shift Status Pill & Shuffle Controls */}
+          <div className="flex items-center justify-center gap-2 mb-2 flex-wrap">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-orange-950/70 border border-orange-500/40 text-[11px] font-black uppercase tracking-wider text-orange-400 shadow-sm">
+              <span className="w-2 h-2 rounded-full bg-orange-500 animate-ping inline-block"></span>
+              <span>{shift.date === 'Practice' ? 'Practice Mode' : 'Daily Mod Shift'}</span>
+            </div>
+            <button
+              onClick={handlePracticeAnotherShift}
+              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-[10px] font-bold cursor-pointer transition-colors border border-zinc-700/50"
+              title="Load another community to practice"
+            >
+              <span>🎲</span>
+              <span>New Sub</span>
+            </button>
+            <button
+              onClick={handleShuffleQueue}
+              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-[10px] font-bold cursor-pointer transition-colors border border-zinc-700/50"
+              title="Randomize and shuffle posts in queue"
+            >
+              <span>🔀</span>
+              <span>Shuffle</span>
+            </button>
+          </div>
 
-          <h1 className="text-2xl font-black text-white mt-2">
+          <h1 className="text-2xl sm:text-3xl font-black text-white mt-2.5 tracking-tight">
             {shift.subreddit}
           </h1>
-          <p className="text-xs text-zinc-400 mt-1 italic">
+          <p className="text-xs text-zinc-400 mt-1 italic max-w-xs mx-auto">
             &ldquo;{shift.tagline}&rdquo;
           </p>
 
-          <div className="mt-5 p-4 rounded-2xl bg-zinc-950/80 border border-zinc-800 text-left">
-            <h2 className="text-xs font-bold text-zinc-300 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
-              <span>📋</span> Active AutoMod Directives:
-            </h2>
+          {/* AutoMod Security Protocol Card */}
+          <div className="mt-5 p-4 rounded-2xl bg-zinc-950/80 border border-zinc-800 text-left shadow-inner">
+            <div className="flex items-center justify-between pb-2.5 mb-3 border-b border-zinc-800/80">
+              <h2 className="text-[11px] font-bold text-zinc-300 uppercase tracking-wider flex items-center gap-1.5">
+                <span>📋</span> Active AutoMod Directives:
+              </h2>
+              <span className="text-[10px] font-mono text-emerald-400 bg-emerald-950/60 border border-emerald-500/30 px-2 py-0.5 rounded-full font-bold">
+                ENFORCING
+              </span>
+            </div>
+
             <div className="space-y-2">
-              {shift.rules.map((rule, idx) => (
-                <div key={rule.id} className="flex items-start gap-2 text-xs">
-                  <span className="font-mono text-orange-400 font-bold">R{idx + 1}:</span>
-                  <span className="text-zinc-300">{rule.description}</span>
-                </div>
-              ))}
-              <div className="flex items-start gap-2 text-xs text-purple-300">
-                <span className="font-mono text-purple-400 font-bold">🔨:</span>
-                <span>Ban accounts with negative karma or spam!</span>
+              {shift.rules.map((rule, idx) => {
+                const badgeColors = [
+                  'bg-amber-500/20 text-amber-300 border-amber-500/40',
+                  'bg-sky-500/20 text-sky-300 border-sky-500/40',
+                  'bg-emerald-500/20 text-emerald-300 border-emerald-500/40',
+                ][idx % 3];
+                return (
+                  <div key={rule.id} className="flex items-start gap-2.5 p-2 rounded-xl bg-zinc-900/60 border border-zinc-800/50">
+                    <span className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded border shrink-0 ${badgeColors}`}>
+                      R{idx + 1}
+                    </span>
+                    <div className="min-w-0">
+                      <span className="text-xs text-zinc-200 font-medium leading-tight block">
+                        {rule.description}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+
+              {/* Ban Hammer Rule */}
+              <div className="flex items-start gap-2.5 p-2 rounded-xl bg-purple-950/40 border border-purple-800/50 text-purple-200">
+                <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded border border-purple-500/40 bg-purple-900/60 text-purple-300 shrink-0">
+                  🔨 BAN
+                </span>
+                <span className="text-xs text-purple-200/90 font-medium leading-tight">
+                  Accounts with negative karma or spam links!
+                </span>
               </div>
             </div>
-          </div>
 
-          <div className="mt-4 flex items-center justify-around text-center py-2 text-xs text-zinc-400 border-t border-zinc-800">
-            <div>
-              <span className="block font-bold text-zinc-200 text-sm">15 Posts</span>
-              <span>Daily Queue</span>
-            </div>
-            <div className="border-l border-zinc-800 pl-4">
-              <span className="block font-bold text-zinc-200 text-sm">60 Seconds</span>
-              <span>Shift Limit</span>
-            </div>
-            <div className="border-l border-zinc-800 pl-4">
-              <span className="block font-bold text-orange-400 text-sm">{userStreak} Days 🔥</span>
-              <span>Your Streak</span>
+            {/* Tricky Cases Warning Tip */}
+            <div className="mt-3 pt-2.5 border-t border-zinc-800/60 flex items-center gap-1.5 text-[10px] text-amber-400/90 font-medium">
+              <span>⚠️</span>
+              <span>Watch out for tricky cases: 1-day cutoffs, sneak spam & close typos!</span>
             </div>
           </div>
 
+          {/* Stats Pods */}
+          <div className="mt-4 grid grid-cols-3 gap-2 text-center py-2 text-xs border-t border-zinc-800">
+            <div className="p-2 rounded-xl bg-zinc-950/60 border border-zinc-800/60">
+              <span className="block font-black text-zinc-100 text-sm">15 Posts</span>
+              <span className="text-[10px] text-zinc-400">Daily Queue</span>
+            </div>
+            <div className="p-2 rounded-xl bg-zinc-950/60 border border-zinc-800/60">
+              <span className="block font-black text-zinc-100 text-sm">60s</span>
+              <span className="text-[10px] text-zinc-400">Shift Clock</span>
+            </div>
+            <div className="p-2 rounded-xl bg-zinc-950/60 border border-orange-500/30 bg-orange-950/20">
+              <span className="block font-black text-orange-400 text-sm">
+                {userStreak} {userStreak === 1 ? 'Day' : 'Days'} 🔥
+              </span>
+              <span className="text-[10px] text-orange-300/80">Streak</span>
+            </div>
+          </div>
+
+          {/* Glowing CTA Button */}
           <button
             onClick={startPlaying}
-            className="w-full mt-6 py-4 px-6 rounded-2xl bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 font-black text-white text-base shadow-xl shadow-orange-900/40 active:scale-98 transition-all cursor-pointer"
+            className="w-full mt-5 py-4 px-6 rounded-2xl bg-gradient-to-r from-orange-600 via-amber-500 to-orange-600 hover:brightness-110 active:scale-95 text-white font-black text-base shadow-[0_0_24px_rgba(234,88,12,0.4)] cursor-pointer transition-all flex items-center justify-center gap-2 tracking-wide"
           >
-            PUNCH IN & START SHIFT →
+            <span>PUNCH IN & START SHIFT</span>
+            <span>→</span>
           </button>
         </div>
       )}
@@ -366,7 +459,7 @@ export const GameApp: React.FC = () => {
           <ResultsModal
             result={finalResult}
             cards={shift.cards}
-            onPlayAgain={() => setGameState('briefing')}
+            onPlayAgain={handlePracticeAnotherShift}
           />
         </div>
       )}

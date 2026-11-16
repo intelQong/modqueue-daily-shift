@@ -14,6 +14,8 @@ export type PostCard = {
   expectedAction: Verdict;
   violationReason?: string;
   explanation: string;
+  isTricky?: boolean;
+  trickExplanation?: string;
 };
 
 export type AutoModRule = {

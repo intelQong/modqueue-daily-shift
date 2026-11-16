@@ -71,11 +71,19 @@
 - [x] Devvit CLI (`@devvit/cli`) & Node 22 verified
 - [x] Official Devvit Web React template cloned and analyzed
 - [x] Unique game concept locked: **ModQueue: Daily Shift**
-- [ ] Initialize project into root workspace (`/home/ubuntu/reddit-hackathon`)
-- [ ] Implement daily deterministic seed generator (UTC date -> Subreddit & 15 post cards)
-- [ ] Build card swipe engine (touch drag, keyboard hotkeys, stamp animations)
-- [ ] Sound/audio feedback system (synth stamps, buzzers, ban thuds using Web Audio API)
-- [ ] Build Reddit Redis backend (leaderboards, streaks, daily stats)
-- [ ] Connect Devvit Reddit identity & shareable comment clipboard generator
-- [ ] Test in Reddit Devvit playtest environment
-- [ ] Record demo video & submit to Devpost before Dec 8, 2026
+- [x] Initialize project into root workspace (`/home/ubuntu/reddit-hackathon`)
+- [x] Implement daily deterministic seed generator (UTC date -> Subreddit & 15 post cards)
+- [x] Build card swipe engine (touch drag, keyboard hotkeys, stamp animations)
+- [x] Sound/audio feedback system (synth stamps, buzzers, ban thuds using Web Audio API)
+- [x] Build Reddit Redis backend (leaderboards, streaks, daily stats)
+- [x] Connect Devvit Reddit identity & shareable comment clipboard generator
+- [x] Full test, lint, and build verification passing with 0 errors
+- [x] Connect Reddit Developer Account via `devvit login`
+- [x] App registered on developer portal (`modqueue-daily-shift`)
+- [x] Uploaded to App Directory & installed to `r/ModQueueDaily`
+- [x] Live playtest session active on `r/ModQueueDaily`
+- [x] Design overhaul based on mobile test: zero white bleed, glowing briefing pod, Reddit Snoo avatars
+- [x] Tricky scenarios engine added (5/5 automated tests passing)
+- [x] Devpost complete submission draft generated ([DEVPOST_SUBMISSION.md](file:///home/ubuntu/reddit-hackathon/DEVPOST_SUBMISSION.md))
+- [ ] Record 1-2 min screen capture video
+- [ ] Submit to [redditgameofday2026.devpost.com](https://redditgameofday2026.devpost.com/) before Dec 8, 2026

@@ -124,31 +124,53 @@ export const ResultsModal: React.FC<ResultsModalProps> = ({ result, cards, onPla
 
       {/* Decision Review List */}
       {showReview && (
-        <div className="mt-3 max-h-56 overflow-y-auto space-y-2 pr-1 border-t border-zinc-800 pt-2">
+        <div className="mt-3 max-h-60 overflow-y-auto space-y-2.5 pr-1 border-t border-zinc-800 pt-2.5">
           {result.decisions.map((d, i) => {
             const card = cards.find((c) => c.id === d.cardId);
             return (
               <div
                 key={i}
-                className={`p-2.5 rounded-lg border text-xs ${
+                className={`p-3 rounded-xl border text-xs ${
                   d.correct
-                    ? 'bg-zinc-950/40 border-zinc-800 text-zinc-300'
-                    : 'bg-rose-950/20 border-rose-900/60 text-rose-200'
+                    ? 'bg-zinc-950/60 border-zinc-800/80 text-zinc-300'
+                    : 'bg-rose-950/30 border-rose-800/60 text-rose-200'
                 }`}
               >
-                <div className="flex items-center justify-between font-medium">
-                  <span>
-                    #{i + 1} {card?.author}
-                  </span>
-                  <span className="uppercase font-mono text-[10px]">
-                    Your Action: <strong>{d.userAction}</strong> | Expected: <strong>{d.expectedAction}</strong>
+                <div className="flex items-center justify-between font-medium gap-2">
+                  <div className="flex items-center gap-1.5 truncate">
+                    <span className="font-mono text-zinc-400 font-bold">#{i + 1}</span>
+                    <span className="font-semibold text-zinc-200 truncate">{card?.author}</span>
+                    {card?.isTricky && (
+                      <span className={`text-[9px] px-1.5 py-0.2 rounded font-bold uppercase ${
+                        d.correct
+                          ? 'bg-emerald-950/80 text-emerald-300 border border-emerald-500/40'
+                          : 'bg-amber-950/80 text-amber-300 border border-amber-500/40'
+                      }`}>
+                        {d.correct ? '🎯 Trick Passed' : '⚠️ Mod Trap'}
+                      </span>
+                    )}
+                  </div>
+                  <span className="uppercase font-mono text-[10px] shrink-0">
+                    <span className={d.correct ? 'text-emerald-400 font-bold' : 'text-rose-400 font-bold'}>
+                      {d.userAction}
+                    </span>{' '}
+                    <span className="text-zinc-500">/</span>{' '}
+                    <span className="text-zinc-300">{d.expectedAction}</span>
                   </span>
                 </div>
-                <p className="text-[11px] text-zinc-400 mt-1">
+
+                <p className="text-[11px] font-medium text-zinc-300 mt-1.5 line-clamp-2">
                   {card?.title}
                 </p>
-                <p className="text-[10px] text-zinc-400 mt-0.5 italic">
-                  💡 {card?.explanation}
+
+                {card?.trickExplanation && (
+                  <p className="text-[10px] text-amber-300/90 font-mono mt-1 bg-amber-950/30 px-2 py-1 rounded border border-amber-500/20">
+                    💡 <strong>Trap Analysis:</strong> {card.trickExplanation}
+                  </p>
+                )}
+
+                <p className="text-[10px] text-zinc-400 mt-1 italic">
+                  Rule Check: {card?.explanation}
                 </p>
               </div>
             );
